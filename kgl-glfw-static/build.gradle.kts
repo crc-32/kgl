@@ -7,20 +7,23 @@ plugins {
 }
 
 evaluationDependsOn(":kgl-glfw")
-val unzipWin64Binaries by project(":kgl-glfw").tasks.getting(Copy::class)
-val unzipMacOSBinaries by project(":kgl-glfw").tasks.getting(Copy::class)
+val unzipWin64Binaries      by project(":kgl-glfw").tasks.getting(Copy::class)
+val unzipMacOSBinaries      by project(":kgl-glfw").tasks.getting(Copy::class)
+val unzipMacOSArm64Binaries by project(":kgl-glfw").tasks.getting(Copy::class)
 
 val useSingleTarget: Boolean by rootProject.extra
 
 kotlin {
 	val staticLibs = mapOf(
 		KonanTarget.LINUX_X64 to file("/usr/local/lib/libglfw3.a"),
-		KonanTarget.MACOS_X64 to unzipMacOSBinaries.destinationDir.resolve("lib-macos/libglfw3.a"),
+		KonanTarget.MACOS_X64 to unzipMacOSBinaries.destinationDir.resolve("lib-x86_64/libglfw3.a"),
+		KonanTarget.MACOS_ARM64 to unzipMacOSArm64Binaries.destinationDir.resolve("lib-arm64/libglfw3.a"),
 		KonanTarget.MINGW_X64 to unzipWin64Binaries.destinationDir.resolve("lib-mingw-w64/libglfw3.a")
 	)
 
 	if (!useSingleTarget || HostManager.hostIsLinux) linuxX64("linux")
 	if (!useSingleTarget || HostManager.hostIsMac) macosX64("macos")
+	if (!useSingleTarget || HostManager.hostIsMac) macosArm64("macosArm64")
 	if (!useSingleTarget || HostManager.hostIsMingw) mingwX64("mingw")
 
 	targets.withType<KotlinNativeTarget> {

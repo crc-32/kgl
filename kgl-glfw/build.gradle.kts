@@ -8,10 +8,11 @@ plugins {
 	`maven-publish`
 }
 
-val glfwVersion = "3.3"
+val glfwVersion = "3.3.6"
 val downloadsDir = buildDir.resolve("downloads")
 val glfwWin64Dir = downloadsDir.resolve("glfw.bin.WIN64")
 val glfwMacosDir = downloadsDir.resolve("glfw.bin.MACOS")
+val glfwMacosArmDir = downloadsDir.resolve("glfw.bin.MACOS-ARM4")
 
 val downloadWin64Binaries by tasks.registering(Download::class) {
 	src("https://github.com/glfw/glfw/releases/download/$glfwVersion/glfw-$glfwVersion.bin.WIN64.zip")
@@ -44,11 +45,23 @@ val unzipMacOSBinaries by tasks.registering(Copy::class) {
 		eachFile {
 			relativePath = RelativePath(true, *relativePath.segments.drop(1).toTypedArray())
 		}
-		include("glfw-*/include/**", "glfw-*/lib-macos/**")
+		include("glfw-*/include/**", "glfw-*/lib-x86_64/**")
 
 		includeEmptyDirs = false
 	}
 	into(glfwMacosDir)
+}
+
+val unzipMacOSArm64Binaries by tasks.registering(Copy::class) {
+	from(downloadMacOSBinaries.map { zipTree(it.dest) }) {
+		eachFile {
+			relativePath = RelativePath(true, *relativePath.segments.drop(1).toTypedArray())
+		}
+		include("glfw-*/include/**", "glfw-*/lib-arm64/**")
+
+		includeEmptyDirs = false
+	}
+	into(glfwMacosArmDir)
 }
 
 val useSingleTarget: Boolean by rootProject.extra
@@ -68,6 +81,7 @@ kotlin {
 
 	if (!useSingleTarget || HostManager.hostIsLinux) linuxX64("linux")
 	if (!useSingleTarget || HostManager.hostIsMac) macosX64("macos")
+	if (!useSingleTarget || HostManager.hostIsMac) macosArm64("macosArm64")
 	if (!useSingleTarget || HostManager.hostIsMingw) mingwX64("mingw")
 
 	targets.withType<KotlinNativeTarget> {
@@ -78,6 +92,9 @@ kotlin {
 					if (konanTarget == KonanTarget.MACOS_X64) {
 						dependsOn(unzipMacOSBinaries)
 					}
+					if (konanTarget == KonanTarget.MACOS_ARM64) {
+						dependsOn(unzipMacOSArm64Binaries)
+					}
 					if (konanTarget == KonanTarget.MINGW_X64) {
 						dependsOn(unzipWin64Binaries)
 					}
@@ -85,6 +102,9 @@ kotlin {
 				includeDirs(vulkanHeaderDir)
 				if (konanTarget == KonanTarget.MACOS_X64) {
 					includeDirs(unzipMacOSBinaries.map { it.destinationDir.resolve("include") })
+				}
+				if (konanTarget == KonanTarget.MACOS_ARM64) {
+					includeDirs(unzipMacOSArm64Binaries.map { it.destinationDir.resolve("include") })
 				}
 				if (konanTarget == KonanTarget.MINGW_X64) {
 					includeDirs(unzipWin64Binaries.map { it.destinationDir.resolve("include") })

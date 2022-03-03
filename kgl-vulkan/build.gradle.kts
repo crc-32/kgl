@@ -73,6 +73,7 @@ kotlin {
 
 	if (!useSingleTarget || HostManager.hostIsLinux) linuxX64("linux")
 	if (!useSingleTarget || HostManager.hostIsMac) macosX64("macos")
+	if (!useSingleTarget || HostManager.hostIsMac) macosArm64("macosArm64")
 	if (!useSingleTarget || HostManager.hostIsMingw) mingwX64("mingw")
 
 	targets.withType<KotlinNativeTarget> {
